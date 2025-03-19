@@ -1,0 +1,97 @@
+/* Additional styles for the forum page */
+.marker-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transform: translateY(-50%);
+  }
+  
+  .marker-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  /* Make the textarea auto-resize */
+  textarea {
+    overflow-y: auto;
+  }
+  
+  /* Ensure map containers stay within their bounds */
+  .leaflet-container {
+    z-index: 1;
+    position: relative;
+  }
+  
+  /* Ensure message content stays above map */
+  .message-content {
+    position: relative;
+    z-index: 2;
+  }
+  
+  /* Style the input area container */
+  .input-area {
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+  }
+  
+  /* Make buttons more touch-friendly on mobile */
+  @media (max-width: 640px) {
+    button {
+      min-height: 44px;
+    }
+  
+    .marker-icon {
+      width: 40px;
+      height: 40px;
+    }
+  
+    .marker-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
+  
+  /* Custom scrollbar for the messages container */
+  .messages-container {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+  
+  .messages-container::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .messages-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .messages-container::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+  }
+  
+  /* Improve message bubbles */
+  .message-bubble {
+    position: relative;
+    transition: transform 0.2s ease;
+  }
+  
+  .message-bubble:hover {
+    transform: translateY(-1px);
+  }
+  
+  /* Add subtle animation to the send button */
+  .send-button {
+    transition: all 0.2s ease;
+  }
+  
+  .send-button:hover:not(:disabled) {
+    transform: scale(1.05);
+  }
+  
+  

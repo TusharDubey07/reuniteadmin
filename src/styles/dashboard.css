@@ -1,0 +1,25 @@
+/* Required for Leaflet */
+@import "leaflet/dist/leaflet.css";
+
+.marker-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  transform: translateY(-50%);
+}
+
+.marker-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+

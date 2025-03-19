@@ -1,0 +1,41 @@
+/* Additional styles for the sighting page */
+.marker-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transform: translateY(-50%);
+  }
+  
+  .marker-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  /* Camera styles */
+  video {
+    background-color: #000;
+  }
+  
+  /* Make buttons more touch-friendly on mobile */
+  @media (max-width: 640px) {
+    button {
+      min-height: 44px;
+    }
+  
+    .marker-icon {
+      width: 40px;
+      height: 40px;
+    }
+  
+    .marker-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
+  
+  
