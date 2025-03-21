@@ -38,6 +38,7 @@ export default function RegisterPage({ onRegisterSuccess }) {
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
   const [showApprovalModal, setShowApprovalModal] = useState(false)
   const [otpError, setOtpError] = useState("")
+  const [error, setError] = useState("")
 
   const handleTabChange = (tab) => {
     setActiveTab(tab)
@@ -140,13 +141,21 @@ export default function RegisterPage({ onRegisterSuccess }) {
     setIsLoading(true)
 
     try {
+      // Validate required fields
+      if (!formData.organization_name || !formData.email || !formData.password || 
+          !formData.phone_number || !formData.organization_latitude || 
+          !formData.organization_longitude || !formData.organization_location || 
+          !formData.first_name || !formData.last_name || !formData.verification_documents) {
+        throw new Error('Please fill in all required fields')
+      }
+
       const formDataToSend = new FormData()
       
-      // Map form data to API fields
+      // Add all required fields exactly as the API expects
       formDataToSend.append('organization_name', formData.organization_name)
       formDataToSend.append('email', formData.email)
       formDataToSend.append('password', formData.password)
-      formDataToSend.append('phone_number', formData.phone_number)
+      formDataToSend.append('phone_number', formData.phone_number.startsWith('+') ? formData.phone_number : `+${formData.phone_number}`)
       formDataToSend.append('role', formData.role)
       formDataToSend.append('organization_latitude', formData.organization_latitude)
       formDataToSend.append('organization_longitude', formData.organization_longitude)
@@ -160,19 +169,30 @@ export default function RegisterPage({ onRegisterSuccess }) {
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/accounts/users/register_organization/`, {
         method: 'POST',
-        body: formDataToSend,
+        body: formDataToSend
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
+        // Handle specific error messages from the server
+        if (data.detail) {
+          throw new Error(data.detail)
+        } else if (typeof data === 'object') {
+          // Handle validation errors
+          const errors = Object.entries(data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join('; ')
+          throw new Error(`Validation errors: ${errors}`)
+        }
         throw new Error('Registration failed')
       }
 
-      const data = await response.json()
       console.log('Registration successful:', data)
       setShowOTPVerification(true)
     } catch (error) {
       console.error('Registration error:', error)
-      // Handle error appropriately
+      setError(error.message)
     } finally {
       setIsLoading(false)
     }
@@ -252,6 +272,12 @@ export default function RegisterPage({ onRegisterSuccess }) {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="px-8 py-6 space-y-6">
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-red-700">{error}</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label htmlFor="first_name" className="text-sm font-medium text-gray-700 block">

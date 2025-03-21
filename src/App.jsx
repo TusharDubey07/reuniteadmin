@@ -4,6 +4,7 @@ import LoginPage from './pages/Login'
 import RegisterPage from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import SearchPage from './pages/Search'
+import AdvancedSearch from './pages/AdvancedSearch'
 import Layout from './components/Layout'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import ListingPage from './pages/Listing'
@@ -12,6 +13,8 @@ import AdminDashboard from './pages/AdminDash'
 import AdminUsers from './pages/AdminUsers'
 import AdminLogs from './pages/AdminLogs'
 import Admin from './components/Admin'
+import Sighting from './pages/Sighting'
+import SightingsList from './pages/SightingsList'
 // import Admin from './components/Admin'
 
 function App() {
@@ -102,7 +105,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage onLoginSuccess={handleLoginSuccess} onAdminLogin={handleAdminLogin} />} />
         <Route path="/register" element={<RegisterPage onRegisterSuccess={handleLoginSuccess} />} />
-        
+        <Route path="/listing" element={<ListingPage />} />
         {/* Admin Routes */}
         <Route
           path="/admin/*"
@@ -130,7 +133,11 @@ function App() {
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard userRole={userRole} />} />
                   <Route path="/search" element={<SearchPage />} />
+                  <Route path="/advanced-search" element={<AdvancedSearch />} />
                   <Route path="/forum" element={<ForumPage />} />
+                  <Route path="/sighting" element={<Sighting />} />
+                  <Route path="/sightings" element={<SightingsList />} />
+                  {/* <Route path="/admin" element={<AdminDashboard />} />/ */}
                 </Routes>
               </Layout>
             </ProtectedRoute>

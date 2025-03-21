@@ -1,4 +1,4 @@
-import { FaFilter, FaSortAmountDown, FaSearch, FaPhone, FaCalendarAlt, FaEye } from "react-icons/fa"
+import { FaFilter, FaSortAmountDown, FaSearch, FaPhone, FaCalendarAlt, FaEye, FaMapMarkerAlt } from "react-icons/fa"
 
 export default function CasesList({ cases, showOnlyMissing, onToggleShowMissing, onCaseClick }) {
   return (
@@ -36,7 +36,7 @@ export default function CasesList({ cases, showOnlyMissing, onToggleShowMissing,
             >
               <div className="px-6 py-4 flex items-center">
                 <img
-                  src={caseData.photo || "/placeholder.svg"}
+                  src={caseData.recent_photo || "/placeholder.svg"}
                   alt={caseData.name}
                   className="h-16 w-16 rounded-full object-cover mr-4 border-2 border-gray-200"
                 />
@@ -45,19 +45,23 @@ export default function CasesList({ cases, showOnlyMissing, onToggleShowMissing,
                     <p className="text-sm font-medium text-gray-900 truncate">{caseData.name}</p>
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        caseData.status === "missing" ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
+                        caseData.status === "MISSING" ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
                       }`}
                     >
-                      {caseData.status === "missing" ? "Missing" : "Found"}
+                      {caseData.status}
                     </span>
                   </div>
                   <div className="mt-1 flex items-center text-sm text-gray-500">
                     <FaPhone className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                    <p className="truncate">{caseData.contactPhone}</p>
+                    <p className="truncate">{caseData.emergency_contact_phone}</p>
                   </div>
                   <div className="mt-1 flex items-center text-sm text-gray-500">
                     <FaCalendarAlt className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                    <p>Last seen: {caseData.lastSeen}</p>
+                    <p>Last seen: {new Date(caseData.last_seen_date).toLocaleDateString()}</p>
+                  </div>
+                  <div className="mt-1 flex items-center text-sm text-gray-500">
+                    <FaMapMarkerAlt className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                    <p>Location: {caseData.last_seen_location}</p>
                   </div>
                 </div>
                 <button className="ml-4 flex-shrink-0 bg-white rounded-full p-1 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">

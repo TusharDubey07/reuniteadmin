@@ -1,67 +1,7 @@
-import { useState, useEffect, useRef } from "react"
-import {
-  FaUser,
-  FaMapMarkerAlt,
-  FaPhone,
-  FaCamera,
-  FaUndo,
-  FaBuilding,
-  FaShieldAlt,
-  FaTimes,
-  FaCheck,
-  FaArrowLeft,
-  FaSearch,
-  FaSpinner
-} from "react-icons/fa"
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet"
-import L from "leaflet"
-import "../styles/listing.css"
+import { useState, useEffect } from 'react'
+import { FaSearch, FaSpinner, FaTimes, FaMapMarkerAlt } from 'react-icons/fa'
 
-// Mock data for nearby NGOs and police stations
-const NEARBY_ORGANIZATIONS = [
-  {
-    id: 1,
-    name: "Child Welfare NGO",
-    type: "ngo",
-    location: { lat: 28.6189, lng: 77.21 },
-    address: "123 Main Street, Delhi",
-    phone: "+91 98765 43210",
-    email: "contact@childwelfare.org",
-    distance: "0.8 km",
-  },
-  {
-    id: 2,
-    name: "Delhi Police Station",
-    type: "police",
-    location: { lat: 28.6159, lng: 77.209 },
-    address: "456 Central Avenue, Delhi",
-    phone: "+91 87654 32109",
-    email: "delhipolice@gov.in",
-    distance: "1.2 km",
-  },
-  {
-    id: 3,
-    name: "Hope Foundation",
-    type: "ngo",
-    location: { lat: 28.6219, lng: 77.215 },
-    address: "789 Hope Street, Delhi",
-    phone: "+91 76543 21098",
-    email: "info@hopefoundation.org",
-    distance: "1.5 km",
-  },
-  {
-    id: 4,
-    name: "Central Police Station",
-    type: "police",
-    location: { lat: 28.6109, lng: 77.205 },
-    address: "101 Government Road, Delhi",
-    phone: "+91 65432 10987",
-    email: "centralpolice@gov.in",
-    distance: "2.0 km",
-  },
-]
-
-export default function SightingPage() {
+export default function Sighting() {
   const [formData, setFormData] = useState({
     location: '',
     latitude: '',
@@ -77,8 +17,6 @@ export default function SightingPage() {
     location_details: '',
     direction_headed: '',
     wearing: '',
-    reporter_name: '',
-    reporter_contact: ''
   })
 
   const [showMissingPersons, setShowMissingPersons] = useState(false)
@@ -101,20 +39,25 @@ export default function SightingPage() {
 
   const fetchMissingPersons = async () => {
     try {
+      const accessToken = localStorage.getItem('access_token')
+      if (!accessToken) {
+        throw new Error('No access token found')
+      }
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/missing-persons/missing-persons/list_all/`, {
         headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ1MDkyNDU4LCJpYXQiOjE3NDI1MDA0NTgsImp0aSI6IjJmYTNlNWUzODVlYTRiZjk5MjE0MzQ1ZDA2ZWFiMDdkIiwidXNlcl9pZCI6NTJ9.tmSsiepbPrbF-O59PFh2YKOK-NLU9Bpd8Xhy1PVgbLo',
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${accessToken}`
         }
       })
+
       if (!response.ok) {
         throw new Error('Failed to fetch missing persons')
       }
+
       const data = await response.json()
       setMissingPersons(data.results || [])
     } catch (err) {
       setError(err.message)
-      console.error('Error fetching missing persons:', err)
     }
   }
 
@@ -125,6 +68,11 @@ export default function SightingPage() {
     setSuccess(false)
 
     try {
+      const accessToken = localStorage.getItem('access_token')
+      if (!accessToken) {
+        throw new Error('No access token found')
+      }
+
       // Format coordinates before sending
       const formattedLatitude = formatCoordinate(formData.latitude)
       const formattedLongitude = formatCoordinate(formData.longitude)
@@ -132,14 +80,6 @@ export default function SightingPage() {
       // Validate coordinates
       if (isNaN(parseFloat(formattedLatitude)) || isNaN(parseFloat(formattedLongitude))) {
         throw new Error('Please enter valid coordinates')
-      }
-
-      // Validate reporter information
-      if (!formData.reporter_name.trim()) {
-        throw new Error('Please enter your name')
-      }
-      if (!formData.reporter_contact.trim()) {
-        throw new Error('Please enter your contact number')
       }
 
       const formDataToSend = new FormData()
@@ -156,8 +96,6 @@ export default function SightingPage() {
       formDataToSend.append('companions', formData.companions)
       formDataToSend.append('timestamp', formData.timestamp)
       formDataToSend.append('description', formData.description)
-      formDataToSend.append('reporter_name', formData.reporter_name)
-      formDataToSend.append('reporter_contact', formData.reporter_contact)
 
       // Optional fields
       if (formData.location_details) {
@@ -182,6 +120,9 @@ export default function SightingPage() {
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/sightings/sightings/`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        },
         body: formDataToSend
       })
 
@@ -222,8 +163,6 @@ export default function SightingPage() {
         location_details: '',
         direction_headed: '',
         wearing: '',
-        reporter_name: '',
-        reporter_contact: ''
       })
       setSelectedPerson(null)
       setPhoto(null)
@@ -292,32 +231,6 @@ export default function SightingPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Reporter Information */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div>
-            <label htmlFor="reporter_name" className="block text-sm font-medium text-gray-700">Your Name</label>
-            <input
-              type="text"
-              id="reporter_name"
-              value={formData.reporter_name}
-              onChange={(e) => setFormData({ ...formData, reporter_name: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-2.5 px-4"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="reporter_contact" className="block text-sm font-medium text-gray-700">Your Contact Number</label>
-            <input
-              type="tel"
-              id="reporter_contact"
-              value={formData.reporter_contact}
-              onChange={(e) => setFormData({ ...formData, reporter_contact: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-2.5 px-4"
-              required
-            />
-          </div>
-        </div>
-
         {/* Missing Person Selection */}
         <div>
           <div className="flex items-center mb-4">
@@ -382,25 +295,25 @@ export default function SightingPage() {
                       <FaTimes />
                     </button>
                   </div>
-              </div>
+                </div>
               )}
             </div>
           )}
-          </div>
+        </div>
 
         {/* Location Information */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
             <label htmlFor="location" className="block text-sm font-medium text-gray-700">Location</label>
-              <input
-                type="text"
+            <input
+              type="text"
               id="location"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-2.5 px-4"
-                required
-              />
-            </div>
+              required
+            />
+          </div>
           <div>
             <label htmlFor="location_details" className="block text-sm font-medium text-gray-700">Location Details</label>
             <input
@@ -412,11 +325,11 @@ export default function SightingPage() {
             />
           </div>
           <div className="col-span-2">
-              <div className="flex justify-between items-center mb-2">
+            <div className="flex justify-between items-center mb-2">
               <label className="block text-sm font-medium text-gray-700">Coordinates</label>
-                <button
-                  type="button"
-                  onClick={getCurrentLocation}
+              <button
+                type="button"
+                onClick={getCurrentLocation}
                 disabled={isGettingLocation}
                 className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors duration-150"
               >
@@ -431,10 +344,10 @@ export default function SightingPage() {
                     Get Current Location
                   </>
                 )}
-                </button>
-              </div>
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div>
                 <div className="relative">
                   <input
                     type="number"
@@ -461,8 +374,8 @@ export default function SightingPage() {
                     Lat
                   </span>
                 </div>
-                </div>
-                <div>
+              </div>
+              <div>
                 <div className="relative">
                   <input
                     type="number"
@@ -490,9 +403,9 @@ export default function SightingPage() {
                   </span>
                 </div>
               </div>
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
 
         {/* Sighting Details */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -537,7 +450,7 @@ export default function SightingPage() {
               <option value="WITH_CHILDREN">With Children</option>
               <option value="WITH_GROUP">With Group</option>
             </select>
-                  </div>
+          </div>
           <div>
             <label htmlFor="direction_headed" className="block text-sm font-medium text-gray-700">Direction Headed</label>
             <input
@@ -547,8 +460,8 @@ export default function SightingPage() {
               onChange={(e) => setFormData({ ...formData, direction_headed: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-2.5 px-4"
             />
-                </div>
-            </div>
+          </div>
+        </div>
 
         {/* Additional Details */}
         <div>
@@ -561,7 +474,7 @@ export default function SightingPage() {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-2.5 px-4"
             required
           />
-              </div>
+        </div>
 
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
@@ -573,7 +486,7 @@ export default function SightingPage() {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-2.5 px-4"
             required
           />
-                      </div>
+        </div>
 
         <div>
           <label htmlFor="wearing" className="block text-sm font-medium text-gray-700">What were they wearing?</label>
@@ -584,7 +497,7 @@ export default function SightingPage() {
             onChange={(e) => setFormData({ ...formData, wearing: e.target.value })}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-2.5 px-4"
           />
-                        </div>
+        </div>
 
         {/* Photo Upload */}
         <div>
@@ -599,7 +512,7 @@ export default function SightingPage() {
             <label htmlFor="includePhoto" className="ml-2 block text-sm text-gray-900">
               Do you have a photo of the sighting?
             </label>
-              </div>
+          </div>
 
           {includePhoto && (
             <div>
@@ -609,29 +522,28 @@ export default function SightingPage() {
                 onChange={(e) => setPhoto(e.target.files[0])}
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
-                </div>
-              )}
             </div>
+          )}
+        </div>
 
-            {/* Submit Button */}
+        {/* Submit Button */}
         <div>
-            <button
-              type="submit"
+          <button
+            type="submit"
             disabled={loading}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
             {loading ? (
               <>
                 <FaSpinner className="animate-spin h-5 w-5 mr-2" />
-                  Submitting...
-                </>
-              ) : (
+                Submitting...
+              </>
+            ) : (
               'Report Sighting'
-              )}
-            </button>
+            )}
+          </button>
         </div>
-          </form>
+      </form>
     </div>
   )
-}
-
+} 

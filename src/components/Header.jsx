@@ -1,8 +1,10 @@
-import { FaUser, FaBell, FaSignOutAlt } from "react-icons/fa"
+import { FaUser, FaBell, FaSignOutAlt, FaSearch, FaChevronDown } from "react-icons/fa"
 import { Link, useNavigate } from "react-router-dom"
+import { useState } from "react"
 
 export default function Header({ onLogout }) {
   const navigate = useNavigate()
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false)
 
   const handleSignOut = () => {
     // Remove tokens from localStorage
@@ -36,17 +38,55 @@ export default function Header({ onLogout }) {
               >
                 Dashboard
               </Link>
-              <Link
-                to="/search"
-                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                Search
-              </Link>
+              <div className="inline-flex items-center">
+                <button
+                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  onClick={() => setShowSearchDropdown(!showSearchDropdown)}
+                >
+                  <FaSearch className="h-4 w-4 mr-1" />
+                  Search
+                  <FaChevronDown className="h-3 w-3 ml-1" />
+                </button>
+                {showSearchDropdown && (
+                  <div className="absolute mt-8 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                    <div className="py-1" role="menu" aria-orientation="vertical">
+                      <Link
+                        to="/search"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        role="menuitem"
+                        onClick={() => setShowSearchDropdown(false)}
+                      >
+                        Normal Search
+                      </Link>
+                      <Link
+                        to="/advanced-search"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        role="menuitem"
+                        onClick={() => setShowSearchDropdown(false)}
+                      >
+                        Advanced Search
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
               <Link
                 to="/forum"
                 className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
                 Public Forum
+              </Link>
+              <Link
+                to="/sighting"
+                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+              >
+                Report Sighting
+              </Link>
+              <Link
+                to="/sightings"
+                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+              >
+                Sightings List
               </Link>
             </nav>
           </div>

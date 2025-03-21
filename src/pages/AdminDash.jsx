@@ -3,13 +3,14 @@ import {
   FaUsers,
   FaBuilding,
   FaUserShield,
-  FaServer,
+  FaMapMarkerAlt,
   FaUserCog,
   FaCheckCircle,
   FaClipboardList,
   FaExclamationTriangle,
   FaChevronDown,
   FaChevronUp,
+  FaTimes,
 } from "react-icons/fa"
 import { useState, useEffect } from "react"
 
@@ -19,6 +20,20 @@ export default function AdminDashboard({ onLogout }) {
   const [expandedCard, setExpandedCard] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [userAnalytics, setUserAnalytics] = useState({
+    total_users: 0,
+    roles: {
+      citizen: 0,
+      ngo: 0,
+      law_enforcement: 0,
+      admin: 0
+    }
+  })
+  const [caseAnalytics, setCaseAnalytics] = useState({
+    total_cases: 0,
+    cases_by_region: []
+  })
 
   // Mock data
   const stats = {
@@ -41,6 +56,47 @@ export default function AdminDashboard({ onLogout }) {
     minute: "2-digit",
   })
 
+  // Fetch analytics data
+  const fetchAnalytics = async () => {
+    try {
+      const accessToken = localStorage.getItem('access_token')
+      if (!accessToken) {
+        throw new Error('No access token found')
+      }
+
+      // Fetch user analytics
+      const userResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/accounts/users/analytics/`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      })
+
+      // Fetch case analytics
+      const caseResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/missing-persons/missing-persons/analytics/`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      })
+
+      if (!userResponse.ok || !caseResponse.ok) {
+        throw new Error('Failed to fetch analytics')
+      }
+
+      const userData = await userResponse.json()
+      const caseData = await caseResponse.json()
+
+      setUserAnalytics(userData)
+      setCaseAnalytics(caseData)
+    } catch (error) {
+      console.error('Error fetching analytics:', error)
+      setError('Failed to load analytics data')
+    }
+  }
+
+  useEffect(() => {
+    fetchAnalytics()
+  }, [])
+
   // Fetch pending organizations
   const fetchPendingOrganizations = async () => {
     setIsLoading(true)
@@ -57,8 +113,12 @@ export default function AdminDashboard({ onLogout }) {
       }
 
       const data = await response.json()
+      
+      // Get organizations from results array if paginated, otherwise use data directly
+      const organizations = data.results || data
+      
       // Filter only unapproved organizations
-      setPendingOrganizations(data.filter(org => !org.is_approved))
+      setPendingOrganizations(organizations.filter(org => !org.is_approved))
     } catch (error) {
       console.error('Error fetching organizations:', error)
       setError('Failed to load pending organizations')
@@ -70,11 +130,16 @@ export default function AdminDashboard({ onLogout }) {
   // Handle organization approval
   const handleApprove = async (userId) => {
     try {
+      const accessToken = localStorage.getItem('access_token')
+      if (!accessToken) {
+        throw new Error('No access token found')
+      }
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/accounts/approve-organization/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
           user_id: userId
@@ -82,20 +147,29 @@ export default function AdminDashboard({ onLogout }) {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to approve organization')
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.detail || 'Failed to approve organization')
       }
 
       // Remove the approved organization from the list
       setPendingOrganizations(prev => prev.filter(org => org.id !== userId))
+
+      // Show success message
+      setError("") // Clear any existing errors
     } catch (error) {
       console.error('Error approving organization:', error)
-      setError('Failed to approve organization')
+      setError(error.message || 'Failed to approve organization')
     }
   }
 
   // Toggle card expansion
   const toggleCard = (id) => {
     setExpandedCard(expandedCard === id ? null : id)
+  }
+
+  // Function to handle document preview
+  const handleDocumentPreview = (doc) => {
+    window.open(doc.file_url, '_blank')
   }
 
   return (
@@ -155,7 +229,7 @@ export default function AdminDashboard({ onLogout }) {
                         <dl>
                           <dt className="text-sm font-medium text-gray-500 truncate">Total Users</dt>
                           <dd>
-                            <div className="text-lg font-medium text-gray-900">{stats.totalUsers}</div>
+                            <div className="text-lg font-medium text-gray-900">{userAnalytics.total_users}</div>
                           </dd>
                         </dl>
                       </div>
@@ -181,7 +255,7 @@ export default function AdminDashboard({ onLogout }) {
                         <dl>
                           <dt className="text-sm font-medium text-gray-500 truncate">NGOs</dt>
                           <dd>
-                            <div className="text-lg font-medium text-gray-900">{stats.ngos}</div>
+                            <div className="text-lg font-medium text-gray-900">{userAnalytics.roles.ngo}</div>
                           </dd>
                         </dl>
                       </div>
@@ -207,7 +281,7 @@ export default function AdminDashboard({ onLogout }) {
                         <dl>
                           <dt className="text-sm font-medium text-gray-500 truncate">Police Accounts</dt>
                           <dd>
-                            <div className="text-lg font-medium text-gray-900">{stats.policeAccounts}</div>
+                            <div className="text-lg font-medium text-gray-900">{userAnalytics.roles.law_enforcement}</div>
                           </dd>
                         </dl>
                       </div>
@@ -222,51 +296,23 @@ export default function AdminDashboard({ onLogout }) {
                   </div>
                 </div>
 
-                {/* System Health card */}
-                <div
-                  className={`bg-white overflow-hidden shadow rounded-lg ${
-                    stats.systemHealth === "Good" ? "border-green-500" : "border-red-500"
-                  } border-l-4`}
-                >
+                {/* Total Cases card */}
+                <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-green-500">
                   <div className="p-5">
                     <div className="flex items-center">
-                      <div
-                        className={`flex-shrink-0 ${
-                          stats.systemHealth === "Good" ? "bg-green-100" : "bg-red-100"
-                        } rounded-md p-3`}
-                      >
-                        <FaServer
-                          className={`h-6 w-6 ${stats.systemHealth === "Good" ? "text-green-600" : "text-red-600"}`}
-                        />
+                      <div className="flex-shrink-0 bg-green-100 rounded-md p-3">
+                        <FaMapMarkerAlt className="h-6 w-6 text-green-600" />
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">System Health</dt>
+                          <dt className="text-sm font-medium text-gray-500 truncate">Total Cases</dt>
                           <dd>
-                            <div
-                              className={`text-lg font-medium ${
-                                stats.systemHealth === "Good" ? "text-green-600" : "text-red-600"
-                              }`}
-                            >
-                              {stats.systemHealth}
+                            <div className="text-lg font-medium text-green-600">
+                              {caseAnalytics.total_cases}
                             </div>
                           </dd>
                         </dl>
                       </div>
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 px-5 py-3">
-                    <div className="text-sm">
-                      <a
-                        href="#"
-                        className={`font-medium ${
-                          stats.systemHealth === "Good"
-                            ? "text-green-600 hover:text-green-500"
-                            : "text-red-600 hover:text-red-500"
-                        }`}
-                      >
-                        View details
-                      </a>
                     </div>
                   </div>
                 </div>
@@ -348,76 +394,29 @@ export default function AdminDashboard({ onLogout }) {
                 </div>
               </div>
 
-              {/* Recent Activity */}
-              <h2 className="mt-8 text-lg leading-6 font-medium text-gray-900 mb-4">Recent Activity</h2>
+              {/* Recent Activity - Cases by Region */}
+              <h2 className="mt-8 text-lg leading-6 font-medium text-gray-900 mb-4">Cases by Region</h2>
               <div className="bg-white shadow overflow-hidden sm:rounded-md">
                 <ul className="divide-y divide-gray-200">
-                  <li>
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 bg-blue-100 rounded-full p-1">
-                            <FaUsers className="h-4 w-4 text-blue-600" />
+                  {caseAnalytics.cases_by_region.map((region, index) => (
+                    <li key={index}>
+                      <div className="px-4 py-4 sm:px-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 bg-blue-100 rounded-full p-1">
+                              <FaMapMarkerAlt className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <p className="ml-3 text-sm font-medium text-gray-900">{region.last_seen_location}</p>
                           </div>
-                          <p className="ml-3 text-sm font-medium text-gray-900">New user registered</p>
-                        </div>
-                        <div className="ml-2 flex-shrink-0 flex">
-                          <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            2 minutes ago
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-2 sm:flex sm:justify-between">
-                        <div className="sm:flex">
-                          <p className="text-sm text-gray-500">Hope Foundation (NGO) created an account</p>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                  <li>
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 bg-yellow-100 rounded-full p-1">
-                            <FaExclamationTriangle className="h-4 w-4 text-yellow-600" />
+                          <div className="ml-2 flex-shrink-0 flex">
+                            <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                              {region.count} cases
+                            </p>
                           </div>
-                          <p className="ml-3 text-sm font-medium text-gray-900">System alert</p>
-                        </div>
-                        <div className="ml-2 flex-shrink-0 flex">
-                          <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                            1 hour ago
-                          </p>
                         </div>
                       </div>
-                      <div className="mt-2 sm:flex sm:justify-between">
-                        <div className="sm:flex">
-                          <p className="text-sm text-gray-500">Database backup completed successfully</p>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                  <li>
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 bg-green-100 rounded-full p-1">
-                            <FaCheckCircle className="h-4 w-4 text-green-600" />
-                          </div>
-                          <p className="ml-3 text-sm font-medium text-gray-900">Account approved</p>
-                        </div>
-                        <div className="ml-2 flex-shrink-0 flex">
-                          <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                            3 hours ago
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-2 sm:flex sm:justify-between">
-                        <div className="sm:flex">
-                          <p className="text-sm text-gray-500">Delhi Police Station account was approved</p>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -517,7 +516,111 @@ export default function AdminDashboard({ onLogout }) {
                             <p className="text-sm font-medium text-gray-500">Role</p>
                             <p className="text-sm text-gray-900">{org.role}</p>
                           </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">Email</p>
+                            <p className="text-sm text-gray-900">{org.email}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">Address</p>
+                            <p className="text-sm text-gray-900">{org.address || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">City</p>
+                            <p className="text-sm text-gray-900">{org.city || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">State</p>
+                            <p className="text-sm text-gray-900">{org.state || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">Pincode</p>
+                            <p className="text-sm text-gray-900">{org.pincode || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">Organization Coordinates</p>
+                            <p className="text-sm text-gray-900">
+                              {org.organization_latitude && org.organization_longitude 
+                                ? `${org.organization_latitude}, ${org.organization_longitude}`
+                                : '-'}
+                            </p>
+                          </div>
                         </div>
+
+                        {/* Verification Documents Section */}
+                        <div className="mt-6">
+                          <h4 className="text-lg font-medium text-gray-900 mb-4">Verification Documents</h4>
+                          {org.verification_documents && org.verification_documents.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              {org.verification_documents.map((doc, index) => (
+                                <div key={index} className="border rounded-lg p-4 bg-white">
+                                  <p className="text-sm font-medium text-gray-500 mb-2">
+                                    {doc.document_type || 'Document'}
+                                  </p>
+                                  {doc.document && (
+                                    <div className="flex flex-col space-y-2">
+                                      <a 
+                                        href={doc.document}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="group"
+                                      >
+                                        {doc.document.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? (
+                                          <div className="relative">
+                                            <img
+                                              src={doc.document}
+                                              alt="Document preview"
+                                              className="w-full h-40 object-cover rounded-md group-hover:opacity-75 transition-opacity"
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                              <span className="bg-black bg-opacity-50 text-white px-4 py-2 rounded-md">
+                                                Click to view
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="w-full h-40 bg-gray-100 rounded-md flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                                            <svg className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                            </svg>
+                                          </div>
+                                        )}
+                                      </a>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-500">
+                                          {doc.document_type || `Document ${index + 1}`}
+                                        </span>
+                                        <a
+                                          href={doc.document}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        >
+                                          Open
+                                        </a>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500">No verification documents available</p>
+                          )}
+                        </div>
+
+                        {/* Profile Picture Section */}
+                        {org.profile_picture && (
+                          <div className="mt-6">
+                            <h4 className="text-lg font-medium text-gray-900 mb-4">Profile Picture</h4>
+                            <div className="w-32 h-32 rounded-full overflow-hidden">
+                              <img
+                                src={org.profile_picture}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
