@@ -103,7 +103,7 @@ export default function SightingPage() {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/missing-persons/missing-persons/list_all/`, {
         headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ1MDkyNDU4LCJpYXQiOjE3NDI1MDA0NTgsImp0aSI6IjJmYTNlNWUzODVlYTRiZjk5MjE0MzQ1ZDA2ZWFiMDdkIiwidXNlcl9pZCI6NTJ9.tmSsiepbPrbF-O59PFh2YKOK-NLU9Bpd8Xhy1PVgbLo',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ4NDA0MzYyLCJpYXQiOjE3NDU4MTIzNjIsImp0aSI6IjdjZjM4OGJhNjMwYTRlMDQ4ZTllN2Q4ZjU2YmU2ZWE5IiwidXNlcl9pZCI6MX0.vUPbzHH8lE9LMTnb2qwayd0wfdDOuHwem-OGQJEveoU',
           'Content-Type': 'application/json'
         }
       })
